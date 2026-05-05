@@ -40,14 +40,14 @@
             </button>
         </div>
 
-        <div class="status">
+        <div class="status" id="status-system">
             <div class="status-top">
                 <p><strong>Status System</strong></p>
-                <span class="online-text">Online</span>
+                <span class="online-text" id="status-text">Online</span>
             </div>
             <div class="status-info">
-                <img src="{{ asset('img/wifi.png') }}" class="wifi-icon">
-                <small>The system runs normally</small>
+                <img src="{{ asset('img/wifi.png') }}" class="wifi-icon" id="wifi-icon">
+                <small id="status-desc">The system runs normally</small>
             </div>
         </div>
     </div>
@@ -73,7 +73,10 @@
                 <div class="notif">
                     <img src="{{ asset('img/notif.png') }}">
                 </div>
-                <span class="online">Online System</span>
+                <span class="online" id="online-badge">
+                    <span id="badge-dot">●</span> 
+                    <span id="badge-text">Online System</span>
+                </span>
             </div>
         </div>
 
@@ -83,31 +86,37 @@
                 <img src="{{ asset('img/temperature.png') }}">
                 <div class="card-text">
                     <p class="title">Temperature</p>
-                    <h3>28.0</h3>
-                    <span class="status normal">Normal</span>
+                    <h3 id="val-temperature">{{ $sensorData['temperature'] ?? '28.0' }}</h3>
+                    <span class="status normal" id="status-temperature">
+                        {{ isset($sensorData['temperature']) && $sensorData['temperature'] >= 20 && $sensorData['temperature'] <= 35 ? 'Normal' : 'Normal' }}
+                    </span>
                 </div>
             </div>
             <div class="card">
                 <img src="{{ asset('img/water.png') }}">
                 <div class="card-text">
                     <p class="title">Water pH</p>
-                    <h3>6.5</h3>
-                    <span class="status normal">Normal</span>
+                    <h3 id="val-ph">{{ $sensorData['ph'] ?? '6.5' }}</h3>
+                    <span class="status normal" id="status-ph">
+                        {{ isset($sensorData['ph']) && $sensorData['ph'] >= 5.5 && $sensorData['ph'] <= 7.5 ? 'Normal' : 'Normal' }}
+                    </span>
                 </div>
             </div>
             <div class="card">
                 <img src="{{ asset('img/tds.png') }}">
                 <div class="card-text">
                     <p class="title">Water TDS</p>
-                    <h3>700 ppm</h3>
-                    <span class="status normal">Normal</span>
+                    <h3 id="val-tds">{{ $sensorData['tds'] ?? '700' }} ppm</h3>
+                    <span class="status normal" id="status-tds">
+                        {{ isset($sensorData['tds']) && $sensorData['tds'] >= 500 && $sensorData['tds'] <= 1000 ? 'Normal' : 'Normal' }}
+                    </span>
                 </div>
             </div>
             <div class="card">
                 <img src="{{ asset('img/pompa.png') }}">
                 <div class="card-text">
                     <p class="title">Water Pump</p>
-                    <h3>ON</h3>
+                    <h3 id="val-pump">{{ $sensorData['pump'] ?? 'ON' }}</h3>
                     <span class="status normal">Nutrition Circulation</span>
                 </div>
             </div>
@@ -115,8 +124,10 @@
                 <img src="{{ asset('img/uv.png') }}">
                 <div class="card-text">
                     <p class="title">UV Light</p>
-                    <h3>3.2</h3>
-                    <span class="status normal">Optimal</span>
+                    <h3 id="val-uv">{{ $sensorData['uv'] ?? '3.2' }}</h3>
+                    <span class="status normal" id="status-uv">
+                        {{ isset($sensorData['uv']) && $sensorData['uv'] >= 2.5 && $sensorData['uv'] <= 5.0 ? 'Optimal' : 'Optimal' }}
+                    </span>
                 </div>
             </div>
         </div>
@@ -190,32 +201,32 @@
                         <img src="{{ asset('img/temperature.png') }}">
                         <p>Temperature</p>
                         <div class="history-text">
-                            <p>28.0 °C</p>
-                            <span class="update">23 April 2026 12:00</span>
+                            <p id="history-temperature">{{ $sensorData['temperature'] ?? '28.0' }} °C</p>
+                            <span class="update" id="history-time">-</span>
                         </div>
                     </div>
                     <div class="history-item">
                         <img src="{{ asset('img/water.png') }}">
                         <p>Water pH</p>
                         <div class="history-text">
-                            <p>6.5</p>
-                            <span class="update">23 April 2026 12:00</span>
+                            <p id="history-ph">{{ $sensorData['ph'] ?? '6.5' }}</p>
+                            <span class="update" id="history-time-ph">-</span>
                         </div>
                     </div>
                     <div class="history-item">
                         <img src="{{ asset('img/tds.png') }}">
                         <p>Water TDS</p>
                         <div class="history-text">
-                            <p>700 ppm</p>
-                            <span class="update">23 April 2026 12:00</span>
+                            <p id="history-tds">{{ $sensorData['tds'] ?? '700' }} ppm</p>
+                            <span class="update" id="history-time-tds">-</span>
                         </div>
                     </div>
                     <div class="history-item">
                         <img src="{{ asset('img/uv.png') }}">
                         <p>UV Light</p>
                         <div class="history-text">
-                            <p>3.2</p>
-                            <span class="update">23 April 2026 12:00</span>
+                            <p id="history-uv">{{ $sensorData['uv'] ?? '3.2' }}</p>
+                            <span class="update" id="history-time-uv">-</span>
                         </div>
                     </div>
                 </div>
@@ -227,6 +238,89 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+const FIREBASE_URL = '{{ env('FIREBASE_DATABASE_URL') }}/sensors.json';
+
+// Fetch data Firebase setiap 5 detik
+function fetchSensorData() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1000); // timeout 3 detik
+
+    fetch(FIREBASE_URL, { signal: controller.signal })
+        .then(res => {
+            clearTimeout(timeout);
+            return res.json();
+        })
+        .then(data => {
+            updateSystemStatus(true);
+            if (!data) return;
+
+            if (data.temperature !== undefined) {
+                document.getElementById('val-temperature').textContent = data.temperature;
+                document.getElementById('history-temperature').textContent = data.temperature + ' °C';
+            }
+            if (data.ph !== undefined) {
+                document.getElementById('val-ph').textContent = data.ph;
+                document.getElementById('history-ph').textContent = data.ph;
+            }
+            if (data.tds !== undefined) {
+                document.getElementById('val-tds').textContent = data.tds + ' ppm';
+                document.getElementById('history-tds').textContent = data.tds + ' ppm';
+            }
+            if (data.pump !== undefined) {
+                document.getElementById('val-pump').textContent = data.pump;
+            }
+            if (data.uv !== undefined) {
+                document.getElementById('val-uv').textContent = data.uv;
+                document.getElementById('history-uv').textContent = data.uv;
+            }
+
+            const now = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const time = new Date().toLocaleTimeString('id-ID');
+            const datetime = now + ' ' + time;
+            document.querySelectorAll('.update').forEach(el => el.textContent = datetime);
+        })
+        .catch(err => {
+            clearTimeout(timeout);
+            updateSystemStatus(false);
+            console.log('Firebase error:', err);
+        });
+}
+function updateSystemStatus(isOnline) {
+    const statusSystem = document.getElementById('status-system');
+    const statusText = document.getElementById('status-text');
+    const statusDesc = document.getElementById('status-desc');
+    const wifiIcon = document.getElementById('wifi-icon');
+    const onlineBadge = document.getElementById('online-badge');
+
+    if (isOnline) {
+        statusText.textContent = 'Online';
+        statusDesc.textContent = 'The system runs normally';
+        statusSystem.style.background = '#16A34A';
+        wifiIcon.style.filter = 'brightness(0) invert(1)';
+        wifiIcon.style.opacity = '1';
+        wifiIcon.src = "{{ asset('img/wifi.png') }}";
+        document.getElementById('badge-dot').style.color = '#16A34A';
+        document.getElementById('badge-text').textContent = 'Online System';
+        onlineBadge.style.color = '#16A34A';
+        onlineBadge.style.background = '#f0fdf4';
+        onlineBadge.style.border = '1.5px solid #16A34A';
+    } else {
+        statusText.textContent = 'Offline';
+        statusDesc.textContent = 'No Internet Connection';
+        statusSystem.style.background = '#DC2626';
+        wifiIcon.style.filter = 'brightness(0) invert(1)';
+        wifiIcon.style.opacity = '1';
+        wifiIcon.src = "{{ asset('img/wifi-off.svg') }}";
+        document.getElementById('badge-dot').style.color = '#DC2626';
+        document.getElementById('badge-text').textContent = 'Offline System';
+        onlineBadge.style.color = '#DC2626';
+        onlineBadge.style.background = '#fef2f2';
+        onlineBadge.style.border = '1.5px solid #DC2626';
+    }
+}
+fetchSensorData();
+setInterval(fetchSensorData, 5000);
+
 const chartData = {
     temperature: {
         title: 'Temperature Chart (°C)',

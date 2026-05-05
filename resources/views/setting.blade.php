@@ -69,14 +69,14 @@
             </button>
         </div>
 
-        <div class="status">
+        <div class="status" id="status-system">
             <div class="status-top">
                 <p><strong>Status System</strong></p>
-                <span class="online-text">Online</span>
+                <span class="online-text" id="status-text">Online</span>
             </div>
             <div class="status-info">
-                <img src="{{ asset('img/wifi.png') }}" class="wifi-icon">
-                <small>The system runs normally</small>
+                <img src="{{ asset('img/wifi.png') }}" class="wifi-icon" id="wifi-icon">
+                <small id="status-desc">The system runs normally</small>
             </div>
         </div>
     </div>
@@ -231,6 +231,49 @@ function updateDateTime() {
 }
 updateDateTime();
 setInterval(updateDateTime, 1000);
+
+const FIREBASE_URL = '{{ env('FIREBASE_DATABASE_URL') }}/sensors.json';
+
+function checkConnection() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
+    fetch(FIREBASE_URL, { signal: controller.signal })
+        .then(res => {
+            clearTimeout(timeout);
+            updateSystemStatus(true);
+        })
+        .catch(err => {
+            clearTimeout(timeout);
+            updateSystemStatus(false);
+        });
+}
+
+function updateSystemStatus(isOnline) {
+    const statusSystem = document.getElementById('status-system');
+    const statusText = document.getElementById('status-text');
+    const statusDesc = document.getElementById('status-desc');
+    const wifiIcon = document.getElementById('wifi-icon');
+
+    if (isOnline) {
+        statusText.textContent = 'Online';
+        statusDesc.textContent = 'The system runs normally';
+        statusSystem.style.background = '#16A34A';
+        wifiIcon.style.filter = 'brightness(0) invert(1)';
+        wifiIcon.style.opacity = '1';
+        wifiIcon.src = '/img/wifi.png';
+    } else {
+        statusText.textContent = 'Offline';
+        statusDesc.textContent = 'System disconnected!';
+        statusSystem.style.background = '#DC2626';
+        wifiIcon.style.filter = 'brightness(0) invert(1)';
+        wifiIcon.style.opacity = '1';
+        wifiIcon.src = '/img/wifi-off.svg';
+    }
+}
+
+checkConnection();
+setInterval(checkConnection, 5000);
 </script>
 
 @endsection

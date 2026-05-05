@@ -442,13 +442,6 @@ body {
     border-radius:20px;
     font-size:12px;
 }
-.online::before{
-    content:"";
-    width:8px;
-    height:8px;
-    background:#16A34A;
-    border-radius:50%;
-}
 .notif{
     width:35px;
     height:35px;
