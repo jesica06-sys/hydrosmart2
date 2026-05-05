@@ -17,3 +17,7 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+firebase-credentials.json.json
+firebase-credentials.json
+*.json.json
+.env
