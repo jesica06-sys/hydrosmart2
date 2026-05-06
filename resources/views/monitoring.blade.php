@@ -135,14 +135,7 @@
 
             <!-- RIGHT PANEL -->
             <div class="right-panel" id="mon-panel">
-                <div class="status-box">
-                    <h3>System Status</h3>
-                    <p>Sensor <span>Normal</span></p>
-                    <p>Water Cycle <span>Walk</span></p>
-                    <p>Internet Connection <span>Online</span></p>
-                </div>
-
-                <div class="history">
+                <div class="history history-monitoring">
                     <h3>Latest Data History</h3>
                     <div class="history-item">
                         <img src="{{ asset('img/temperature.png') }}">

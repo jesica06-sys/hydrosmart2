@@ -87,47 +87,44 @@
                 <div class="card-text">
                     <p class="title">Temperature</p>
                     <h3 id="val-temperature">{{ $sensorData['temperature'] ?? '28.0' }}</h3>
-                    <span class="status normal" id="status-temperature">
-                        {{ isset($sensorData['temperature']) && $sensorData['temperature'] >= 20 && $sensorData['temperature'] <= 35 ? 'Normal' : 'Normal' }}
-                    </span>
                 </div>
             </div>
+
             <div class="card">
                 <img src="{{ asset('img/water.png') }}">
                 <div class="card-text">
                     <p class="title">Water pH</p>
                     <h3 id="val-ph">{{ $sensorData['ph'] ?? '6.5' }}</h3>
-                    <span class="status normal" id="status-ph">
-                        {{ isset($sensorData['ph']) && $sensorData['ph'] >= 5.5 && $sensorData['ph'] <= 7.5 ? 'Normal' : 'Normal' }}
-                    </span>
                 </div>
             </div>
+
             <div class="card">
                 <img src="{{ asset('img/tds.png') }}">
                 <div class="card-text">
                     <p class="title">Water TDS</p>
                     <h3 id="val-tds">{{ $sensorData['tds'] ?? '700' }} ppm</h3>
-                    <span class="status normal" id="status-tds">
-                        {{ isset($sensorData['tds']) && $sensorData['tds'] >= 500 && $sensorData['tds'] <= 1000 ? 'Normal' : 'Normal' }}
-                    </span>
                 </div>
             </div>
+
             <div class="card">
                 <img src="{{ asset('img/pompa.png') }}">
                 <div class="card-text">
                     <p class="title">Water Pump</p>
-                    <h3 id="val-pump">{{ $sensorData['pump'] ?? 'ON' }}</h3>
-                    <span class="status normal">Nutrition Circulation</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <h3 id="val-pump" style="margin:0;">{{ $sensorData['pump'] ?? 'ON' }}</h3>
+                        <label class="s-toggle" style="width:36px; height:20px; transform:scale(0.8); margin-left:40px; ">
+                            <input type="checkbox" id="pump-toggle" checked onchange="togglePump(this)">
+                            <span class="s-toggle-bar"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
+
             <div class="card">
                 <img src="{{ asset('img/uv.png') }}">
                 <div class="card-text">
                     <p class="title">UV Light</p>
                     <h3 id="val-uv">{{ $sensorData['uv'] ?? '3.2' }}</h3>
-                    <span class="status normal" id="status-uv">
-                        {{ isset($sensorData['uv']) && $sensorData['uv'] >= 2.5 && $sensorData['uv'] <= 5.0 ? 'Optimal' : 'Optimal' }}
-                    </span>
                 </div>
             </div>
         </div>
@@ -190,9 +187,9 @@
             <div class="right-panel">
                 <div class="status-box">
                     <h3>System Status</h3>
-                    <p>Sensor <span>Normal</span></p>
-                    <p>Water Cycle <span>Walk</span></p>
-                    <p>Internet Connection <span>Online</span></p>
+                    <p>Sensor <span id="sensor-status">Normal</span></p>
+                    <p>Water Cycle <span id="pump-status">Running</span></p>
+                    <p>Internet Connection <span id="internet-status">Online</span></p>
                 </div>
 
                 <div class="history">
@@ -240,10 +237,9 @@
 <script>
 const FIREBASE_URL = '{{ env('FIREBASE_DATABASE_URL') }}/sensors.json';
 
-// Fetch data Firebase setiap 5 detik
 function fetchSensorData() {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1000); // timeout 3 detik
+    const timeout = setTimeout(() => controller.abort(), 3000);
 
     fetch(FIREBASE_URL, { signal: controller.signal })
         .then(res => {
@@ -268,12 +264,41 @@ function fetchSensorData() {
             }
             if (data.pump !== undefined) {
                 document.getElementById('val-pump').textContent = data.pump;
+                const pumpToggle = document.getElementById('pump-toggle');
+                pumpToggle.checked = data.pump === 'ON';
+                const pumpStatus = document.getElementById('pump-status');
+                if (data.pump === 'ON') {
+                    pumpStatus.textContent = 'Running';
+                    pumpStatus.style.color = '#16A34A';
+                } else {
+                    pumpStatus.textContent = 'Stopped';
+                    pumpStatus.style.color = '#DC2626';
+                }
             }
             if (data.uv !== undefined) {
                 document.getElementById('val-uv').textContent = data.uv;
                 document.getElementById('history-uv').textContent = data.uv;
             }
 
+            // Sensor status
+            const temp = data.temperature ?? 28;
+            const ph = data.ph ?? 6.5;
+            const tds = data.tds ?? 700;
+            const uv = data.uv ?? 3.2;
+            const sensorStatus = document.getElementById('sensor-status');
+            const isNormal = temp >= 20 && temp <= 35 &&
+                             ph >= 5.5 && ph <= 7.5 &&
+                             tds >= 500 && tds <= 1000 &&
+                             uv >= 2.5 && uv <= 5.0;
+            if (isNormal) {
+                sensorStatus.textContent = 'Normal';
+                sensorStatus.style.color = '#16A34A';
+            } else {
+                sensorStatus.textContent = 'Warning';
+                sensorStatus.style.color = '#F59E0B';
+            }
+
+            // Update waktu history
             const now = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
             const time = new Date().toLocaleTimeString('id-ID');
             const datetime = now + ' ' + time;
@@ -285,12 +310,14 @@ function fetchSensorData() {
             console.log('Firebase error:', err);
         });
 }
+
 function updateSystemStatus(isOnline) {
     const statusSystem = document.getElementById('status-system');
     const statusText = document.getElementById('status-text');
     const statusDesc = document.getElementById('status-desc');
     const wifiIcon = document.getElementById('wifi-icon');
     const onlineBadge = document.getElementById('online-badge');
+    const internetStatus = document.getElementById('internet-status');
 
     if (isOnline) {
         statusText.textContent = 'Online';
@@ -304,6 +331,8 @@ function updateSystemStatus(isOnline) {
         onlineBadge.style.color = '#16A34A';
         onlineBadge.style.background = '#f0fdf4';
         onlineBadge.style.border = '1.5px solid #16A34A';
+        internetStatus.textContent = 'Online';
+        internetStatus.style.color = '#16A34A';
     } else {
         statusText.textContent = 'Offline';
         statusDesc.textContent = 'No Internet Connection';
@@ -316,8 +345,28 @@ function updateSystemStatus(isOnline) {
         onlineBadge.style.color = '#DC2626';
         onlineBadge.style.background = '#fef2f2';
         onlineBadge.style.border = '1.5px solid #DC2626';
+        internetStatus.textContent = 'Disconnected';
+        internetStatus.style.color = '#DC2626';
     }
 }
+
+function togglePump(checkbox) {
+    const status = checkbox.checked ? 'ON' : 'OFF';
+    document.getElementById('val-pump').textContent = status;
+    const pumpStatus = document.getElementById('pump-status');
+    if (status === 'ON') {
+        pumpStatus.textContent = 'Running';
+        pumpStatus.style.color = '#16A34A';
+    } else {
+        pumpStatus.textContent = 'Stopped';
+        pumpStatus.style.color = '#DC2626';
+    }
+    fetch('{{ env('FIREBASE_DATABASE_URL') }}/sensors/pump.json', {
+        method: 'PUT',
+        body: JSON.stringify(status)
+    });
+}
+
 fetchSensorData();
 setInterval(fetchSensorData, 5000);
 

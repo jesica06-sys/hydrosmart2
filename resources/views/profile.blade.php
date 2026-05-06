@@ -73,7 +73,6 @@
                 <div class="notif">
                     <img src="{{ asset('img/notif.png') }}">
                 </div>
-                <span class="online">Online System</span>
             </div>
         </div>
 

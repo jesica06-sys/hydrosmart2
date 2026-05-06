@@ -132,14 +132,14 @@
                         <label class="s-toggle"><input type="checkbox" checked><span class="s-toggle-bar"></span></label>
                         <div>
                             <p class="s-schedule-name">Water Pump</p>
-                            <p class="s-schedule-time">06.00 - 08.00</p>
+                            <p class="s-schedule-time" id="water-pump-time">06.00 - 08.00</p>
                         </div>
                     </div>
                     <div class="s-schedule-item">
                         <label class="s-toggle"><input type="checkbox" checked><span class="s-toggle-bar"></span></label>
                         <div>
                             <p class="s-schedule-name">Nutrition Pump</p>
-                            <p class="s-schedule-time">17.00 - 19.00</p>
+                            <p class="s-schedule-time" id="nutrition-pump-time">17.00 - 19.00</p>
                         </div>
                     </div>
                 </div>
@@ -185,7 +185,7 @@
 
         <div style="margin-bottom:15px;">
             <label style="font-size:12px; font-weight:600; font-family:'Poppins',sans-serif;">Schedule Name</label>
-            <select style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px;">
+            <select id="schedule-name" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px;">
                 <option>Water Pump</option>
                 <option>Nutrition Pump</option>
                 <option>Custom</option>
@@ -195,16 +195,16 @@
         <div style="display:flex; gap:15px; margin-bottom:15px;">
             <div style="flex:1;">
                 <label style="font-size:12px; font-weight:600; font-family:'Poppins',sans-serif;">Start Time</label>
-                <input type="time" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px; box-sizing:border-box;">
+                <input type="time" id="schedule-start" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px; box-sizing:border-box;">
             </div>
             <div style="flex:1;">
                 <label style="font-size:12px; font-weight:600; font-family:'Poppins',sans-serif;">End Time</label>
-                <input type="time" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px; box-sizing:border-box;">
+                <input type="time" id="schedule-end" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px; box-sizing:border-box;">
             </div>
         </div>
 
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-            <label class="s-toggle"><input type="checkbox" checked><span class="s-toggle-bar"></span></label>
+            <label class="s-toggle"><input type="checkbox" id="schedule-active" checked><span class="s-toggle-bar"></span></label>
             <span style="font-size:13px; font-family:'Poppins',sans-serif;">Active</span>
         </div>
 
@@ -213,7 +213,7 @@
                 style="flex:1; padding:10px; border:2px solid #ddd; border-radius:10px; background:#fff; font-family:'Poppins',sans-serif; font-size:13px; cursor:pointer;">
                 Cancel
             </button>
-            <button onclick="document.getElementById('scheduleModal').style.display='none'"
+            <button onclick="saveSchedule()"
                 style="flex:1; padding:10px; border:none; border-radius:10px; background:#16A34A; color:#fff; font-family:'Poppins',sans-serif; font-size:13px; font-weight:600; cursor:pointer;">
                 Save Schedule
             </button>
@@ -233,19 +233,64 @@ updateDateTime();
 setInterval(updateDateTime, 1000);
 
 const FIREBASE_URL = '{{ env('FIREBASE_DATABASE_URL') }}/sensors.json';
+const FIREBASE_SCHEDULE_URL = '{{ env('FIREBASE_DATABASE_URL') }}/schedules';
 
-function checkConnection() {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+function saveSchedule() {
+    const name = document.getElementById('schedule-name').value;
+    const start = document.getElementById('schedule-start').value;
+    const end = document.getElementById('schedule-end').value;
+    const active = document.getElementById('schedule-active').checked;
 
-    fetch(FIREBASE_URL, { signal: controller.signal })
-        .then(res => {
-            clearTimeout(timeout);
-            updateSystemStatus(true);
-        })
-        .catch(err => {
-            clearTimeout(timeout);
-            updateSystemStatus(false);
+    if (!start || !end) {
+        alert('Harap isi waktu mulai dan selesai!');
+        return;
+    }
+
+    const data = {
+        name: name,
+        start_time: start,
+        end_time: end,
+        is_active: active,
+        created_at: new Date().toISOString()
+    };
+
+    fetch(FIREBASE_SCHEDULE_URL + '.json', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        alert('Schedule berhasil disimpan!');
+        document.getElementById('scheduleModal').style.display = 'none';
+        loadSchedules();
+    })
+    .catch(err => {
+        alert('Gagal menyimpan schedule!');
+    });
+}
+
+function loadSchedules() {
+    fetch(FIREBASE_SCHEDULE_URL + '.json')
+        .then(res => res.json())
+        .then(data => {
+            if (!data) return;
+
+            let waterPump = null;
+            let nutritionPump = null;
+
+            Object.values(data).forEach(schedule => {
+                if (schedule.name === 'Water Pump') waterPump = schedule;
+                if (schedule.name === 'Nutrition Pump') nutritionPump = schedule;
+            });
+
+            if (waterPump) {
+                document.getElementById('water-pump-time').textContent =
+                    waterPump.start_time + ' - ' + waterPump.end_time;
+            }
+            if (nutritionPump) {
+                document.getElementById('nutrition-pump-time').textContent =
+                    nutritionPump.start_time + ' - ' + nutritionPump.end_time;
+            }
         });
 }
 
@@ -272,8 +317,42 @@ function updateSystemStatus(isOnline) {
     }
 }
 
+function checkConnection() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
+    fetch(FIREBASE_URL, { signal: controller.signal })
+        .then(res => {
+            clearTimeout(timeout);
+            updateSystemStatus(true);
+        })
+        .catch(err => {
+            clearTimeout(timeout);
+            updateSystemStatus(false);
+        });
+}
+
+loadSchedules();
 checkConnection();
 setInterval(checkConnection, 5000);
+
+// Pump Control - disable/enable slider
+const pumpRadios = document.querySelectorAll('input[name="pump-mode"]');
+const pumpSlider = document.getElementById('pump-speed');
+
+function updateSliderState() {
+    const isManual = document.querySelector('input[name="pump-mode"][value="manual"]').checked;
+    pumpSlider.disabled = !isManual;
+    pumpSlider.style.opacity = isManual ? '1' : '0.4';
+    pumpSlider.style.cursor = isManual ? 'pointer' : 'not-allowed';
+}
+
+pumpRadios.forEach(radio => {
+    radio.addEventListener('change', updateSliderState);
+});
+
+// Jalankan saat halaman load
+updateSliderState();
 </script>
 
 @endsection

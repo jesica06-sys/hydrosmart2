@@ -47,8 +47,7 @@ Route::get('/monitoring', function () {
 })->name('monitoring');
 
 Route::get('/setting', function () {
-    $schedules = \App\Models\Schedule::all();
-    return view('setting', compact('schedules'));
+    return view('setting');
 })->name('setting');
 
 Route::get('/profile', function () {
