@@ -21,3 +21,4 @@ firebase-credentials.json.json
 firebase-credentials.json
 *.json.json
 .env
+/storage/app/firebase/

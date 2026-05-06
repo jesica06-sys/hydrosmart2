@@ -10,10 +10,13 @@ class FirebaseService
     protected $baseUrl;
 
     public function __construct()
-    {
-        $this->client = new Client();
-        $this->baseUrl = env('FIREBASE_DATABASE_URL');
-    }
+{
+    $this->client = new Client();
+    $this->baseUrl = env('FIREBASE_DATABASE_URL');
+    
+    // Kalau butuh credentials untuk autentikasi
+    $this->credentials = storage_path('app/firebase/service-account.json');
+}
 
     public function getData($path)
     {
