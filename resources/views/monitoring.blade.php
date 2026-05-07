@@ -118,17 +118,14 @@
                     <div>
                         <p>Minimum</p>
                         <h4 id="stat-min">25.0 °C</h4>
-                        <span class="time" id="stat-min-time">08:00</span>
                     </div>
                     <div>
                         <p>Average</p>
                         <h4 id="stat-avg">28.2 °C</h4>
-                        <span class="time">Today</span>
                     </div>
                     <div>
                         <p>Maximum</p>
                         <h4 id="stat-max">31.0 °C</h4>
-                        <span class="time" id="stat-max-time">12:00</span>
                     </div>
                 </div>
             </div>

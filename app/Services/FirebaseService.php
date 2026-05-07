@@ -8,16 +8,18 @@ class FirebaseService
 {
     protected $client;
     protected $baseUrl;
+    protected $firestoreUrl;
+    protected $projectId;
 
     public function __construct()
-{
-    $this->client = new Client();
-    $this->baseUrl = env('FIREBASE_DATABASE_URL');
-    
-    // Kalau butuh credentials untuk autentikasi
-    $this->credentials = storage_path('app/firebase/service-account.json');
-}
+    {
+        $this->client       = new Client();
+        $this->baseUrl      = env('FIREBASE_DATABASE_URL');
+        $this->projectId    = env('FIREBASE_PROJECT_ID');
+        $this->firestoreUrl = "https://firestore.googleapis.com/v1/projects/{$this->projectId}/databases/(default)/documents";
+    }
 
+    // ===== REALTIME DATABASE (sensor) =====
     public function getData($path)
     {
         $response = $this->client->get("{$this->baseUrl}/{$path}.json");
@@ -30,5 +32,44 @@ class FirebaseService
             'json' => $data
         ]);
         return json_decode($response->getBody(), true);
+    }
+
+    // ===== FIRESTORE (user) =====
+    public function getUser($email)
+    {
+        $docId = str_replace(['.', '@'], '_', $email);
+
+        try {
+            $response = $this->client->get("{$this->firestoreUrl}/allowed_users/{$docId}");
+            $data     = json_decode($response->getBody(), true);
+
+            if (!isset($data['fields'])) return null;
+
+            // Parse Firestore format ke array biasa
+            $fields = $data['fields'];
+            return [
+                'name'     => $fields['name']['stringValue']     ?? null,
+                'email'    => $fields['email']['stringValue']    ?? null,
+                'password' => $fields['password']['stringValue'] ?? null,
+            ];
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    public function updateLastLogin($email)
+    {
+        $docId = str_replace(['.', '@'], '_', $email);
+
+        $this->client->patch(
+            "{$this->firestoreUrl}/allowed_users/{$docId}?updateMask.fieldPaths=last_login",
+            [
+                'json' => [
+                    'fields' => [
+                        'last_login' => ['stringValue' => now()->toDateTimeString()]
+                    ]
+                ]
+            ]
+        );
     }
 }

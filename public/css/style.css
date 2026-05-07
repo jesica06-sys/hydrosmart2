@@ -223,7 +223,17 @@ body {
     left: 10px;
 }
 .google-btn:hover { background: #f5f5f5; }
-
+.alert-error {
+    background: #fef2f2;
+    color: #DC2626;
+    border: 1px solid #DC2626;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+}
 
 /* ================= DASHBOARD ================= */
 

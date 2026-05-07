@@ -168,17 +168,14 @@
                     <div>
                         <p>Minimum</p>
                         <h4>25.0 °C</h4>
-                        <span class="time">08:30</span>
                     </div>
                     <div>
                         <p>Average</p>
                         <h4>28.2 °C</h4>
-                        <span class="time">12:00</span>
                     </div>
                     <div>
                         <p>Maximum</p>
                         <h4>31.0 °C</h4>
-                        <span class="time">14:45</span>
                     </div>
                 </div>
             </div>

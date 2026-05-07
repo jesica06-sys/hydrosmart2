@@ -21,6 +21,12 @@
             <h1>Welcome Back</h1>
             <p>Sign in to your account</p>
 
+            @if ($errors->any())
+                <div class="alert-error">
+                    {{ $errors->first('login') }}
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('login.post') }}">
                 @csrf
                 <div class="input-group">

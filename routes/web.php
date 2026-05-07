@@ -10,31 +10,36 @@ Route::get('/', function () {
 })->name('login');
 
 Route::post('/login', function () {
-    $email = request('email');
+    $email    = request('email');
     $password = request('password');
-    $name = ucfirst(explode('@', $email)[0]);
 
-    // Simpan ke session
-    session(['userName' => $name, 'userEmail' => $email]);
-
-    // Simpan ke Firebase
     try {
         $firebase = new \App\Services\FirebaseService();
-        $firebase->setData('users/' . str_replace('.', '_', $email), [
-            'name'      => $name,
-            'email'     => $email,
-            'last_login' => now()->toDateTimeString(),
+        $user     = $firebase->getUser($email);
+
+        if (!$user || !password_verify($password, $user['password'])) {
+            return back()->withErrors(['login' => 'Email atau password salah, atau akun tidak diizinkan.']);
+        }
+
+        $firebase->updateLastLogin($email);
+
+        session([
+            'userName'  => $user['name'],
+            'userEmail' => $email,
         ]);
+
+        return redirect('/dashboard');
+
     } catch (\Exception $e) {
-        // lanjut meski Firebase gagal
+        return back()->withErrors(['login' => 'Gagal terhubung ke database: ' . $e->getMessage()]);
     }
 
-    return redirect('/dashboard');
 })->name('login.post');
 
+// Dashboard
 Route::get('/dashboard', function () {
     try {
-        $firebase = new \App\Services\FirebaseService();
+        $firebase   = new \App\Services\FirebaseService();
         $sensorData = $firebase->getData('sensors');
     } catch (\Exception $e) {
         $sensorData = null;
@@ -64,11 +69,28 @@ Route::get('/auth/google', function () {
 })->name('auth.google');
 
 Route::get('/auth/google/callback', function () {
-    $user = Socialite::driver('google')->stateless()->user();
-    session([
-        'userName'    => $user->getName(),
-        'userEmail'   => $user->getEmail(),
-        'userPicture' => $user->getAvatar(),
-    ]);
-    return redirect('/dashboard');
+    $googleUser = Socialite::driver('google')->stateless()->user();
+    $email      = $googleUser->getEmail();
+
+    try {
+        $firebase = new \App\Services\FirebaseService();
+        $user     = $firebase->getUser($email);
+
+        if (!$user) {
+            return redirect('/')->withErrors(['login' => 'Akun Google ini tidak diizinkan masuk.']);
+        }
+
+        $firebase->updateLastLogin($email);
+
+        session([
+            'userName'    => $googleUser->getName(),
+            'userEmail'   => $email,
+            'userPicture' => $googleUser->getAvatar(),
+        ]);
+
+        return redirect('/dashboard');
+
+    } catch (\Exception $e) {
+        return redirect('/')->withErrors(['login' => 'Gagal terhubung ke database.']);
+    }
 });
