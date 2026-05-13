@@ -349,6 +349,9 @@ function updateSystemStatus(isOnline) {
 
 function togglePump(checkbox) {
     const status = checkbox.checked ? 'ON' : 'OFF';
+    const statusBool = checkbox.checked; // true = ON, false = OFF
+
+    // Update tampilan
     document.getElementById('val-pump').textContent = status;
     const pumpStatus = document.getElementById('pump-status');
     if (status === 'ON') {
@@ -358,9 +361,19 @@ function togglePump(checkbox) {
         pumpStatus.textContent = 'Stopped';
         pumpStatus.style.color = '#DC2626';
     }
+
+    // Simpan ke /sensors/pump untuk tampilan web
     fetch('{{ env('FIREBASE_DATABASE_URL') }}/sensors/pump.json', {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(status)
+    });
+
+    // Simpan ke /relay/pompa_nutrisi untuk ESP32
+    fetch('{{ env('FIREBASE_DATABASE_URL') }}/relay/pompa_nutrisi.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(statusBool)
     });
 }
 
