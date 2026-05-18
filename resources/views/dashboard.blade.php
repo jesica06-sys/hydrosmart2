@@ -349,7 +349,7 @@ function updateSystemStatus(isOnline) {
 
 function togglePump(checkbox) {
     const status = checkbox.checked ? 'ON' : 'OFF';
-    const statusBool = checkbox.checked; // true = ON, false = OFF
+    const statusBool = checkbox.checked;
 
     // Update tampilan
     document.getElementById('val-pump').textContent = status;
@@ -362,15 +362,22 @@ function togglePump(checkbox) {
         pumpStatus.style.color = '#DC2626';
     }
 
-    // Simpan ke /sensors/pump untuk tampilan web
+    // Update tampilan web ke Firebase
     fetch('{{ env('FIREBASE_DATABASE_URL') }}/sensors/pump.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(status)
     });
 
-    // Simpan ke /relay/pompa_nutrisi untuk ESP32
+    // Kirim ke RELAY 1 - pompa_nutrisi
     fetch('{{ env('FIREBASE_DATABASE_URL') }}/relay/pompa_nutrisi.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(statusBool)
+    });
+
+    // Kirim ke RELAY 2 - pompa_air (bersamaan)
+    fetch('{{ env('FIREBASE_DATABASE_URL') }}/relay/pompa_air.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(statusBool)
