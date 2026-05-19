@@ -109,11 +109,25 @@
             <div class="card">
                 <img src="{{ asset('img/pompa.png') }}">
                 <div class="card-text">
-                    <p class="title">Water Pump</p>
+                    <p class="title">Nutrition Pump</p>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <h3 id="val-pump" style="margin:0;">{{ $sensorData['pump'] ?? 'ON' }}</h3>
                         <label class="s-toggle" style="width:36px; height:20px; transform:scale(0.8); margin-left:40px; ">
                             <input type="checkbox" id="pump-toggle" checked onchange="togglePump(this)">
+                            <span class="s-toggle-bar"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <img src="{{ asset('img/pompa.png') }}">
+                <div class="card-text">
+                    <p class="title">Water Pump</p>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <h3 id="val-nutrition" style="margin:0;">ON</h3>
+                        <label class="s-toggle" style="width:36px; height:20px; transform:scale(0.8); margin-left:40px;">
+                            <input type="checkbox" id="nutrition-toggle" checked onchange="toggleNutrition(this)">
                             <span class="s-toggle-bar"></span>
                         </label>
                     </div>
@@ -185,7 +199,8 @@
                 <div class="status-box">
                     <h3>System Status</h3>
                     <p>Sensor <span id="sensor-status">Normal</span></p>
-                    <p>Water Cycle <span id="pump-status">Running</span></p>
+                    <p>Nutrition Pump <span id="pump-status">Running</span></p>        
+                    <p>Water Pump <span id="nutrition-status">Running</span></p>
                     <p>Internet Connection <span id="internet-status">Online</span></p>
                 </div>
 
@@ -351,10 +366,11 @@ function togglePump(checkbox) {
     const status = checkbox.checked ? 'ON' : 'OFF';
     const statusBool = checkbox.checked;
 
-    // Update tampilan
     document.getElementById('val-pump').textContent = status;
+
+    // Update status di system status
     const pumpStatus = document.getElementById('pump-status');
-    if (status === 'ON') {
+    if (checkbox.checked) {
         pumpStatus.textContent = 'Running';
         pumpStatus.style.color = '#16A34A';
     } else {
@@ -362,27 +378,46 @@ function togglePump(checkbox) {
         pumpStatus.style.color = '#DC2626';
     }
 
-    // Update tampilan web ke Firebase
-    fetch('{{ env('FIREBASE_DATABASE_URL') }}/sensors/pump.json', {
+    fetch('{{ env("FIREBASE_DATABASE_URL") }}/sensors/pump.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(status)
     });
-
-    // Kirim ke RELAY 1 - pompa_nutrisi
-    fetch('{{ env('FIREBASE_DATABASE_URL') }}/relay/pompa_nutrisi.json', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(statusBool)
-    });
-
-    // Kirim ke RELAY 2 - pompa_air (bersamaan)
-    fetch('{{ env('FIREBASE_DATABASE_URL') }}/relay/pompa_air.json', {
+    fetch('{{ env("FIREBASE_DATABASE_URL") }}/relay/pompa_air.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(statusBool)
     });
 }
+
+function toggleNutrition(checkbox) {
+    const status = checkbox.checked ? 'ON' : 'OFF';
+    const statusBool = checkbox.checked;
+
+    document.getElementById('val-nutrition').textContent = status;
+
+    // Update status di system status
+    const nutritionStatus = document.getElementById('nutrition-status');
+    if (checkbox.checked) {
+        nutritionStatus.textContent = 'Running';
+        nutritionStatus.style.color = '#16A34A';
+    } else {
+        nutritionStatus.textContent = 'Stopped';
+        nutritionStatus.style.color = '#DC2626';
+    }
+
+    fetch('{{ env("FIREBASE_DATABASE_URL") }}/sensors/nutrition.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(status)
+    });
+    fetch('{{ env("FIREBASE_DATABASE_URL") }}/relay/pompa_nutrisi.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(statusBool)
+    });
+}
+
 
 fetchSensorData();
 setInterval(fetchSensorData, 5000);
