@@ -475,9 +475,10 @@ body {
 /* CARDS */
 .cards{
     display:grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap:8px;
     margin-top:20px;
+    align-items: stretch;
 }
 .card{
     border-radius: 15px;
@@ -487,7 +488,7 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    height: 80px; 
+    min-height: 80px; 
     box-sizing: border-box;  
 }
 .card img{

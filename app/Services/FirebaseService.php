@@ -37,7 +37,7 @@ class FirebaseService
     // ===== FIRESTORE (user) =====
     public function getUser($email)
     {
-        $docId = str_replace(['.', '@'], '_', $email);
+        $docId = strtolower(str_replace(['.', '@'], '_', $email));
 
         try {
             $response = $this->client->get("{$this->firestoreUrl}/allowed_users/{$docId}");
@@ -53,13 +53,14 @@ class FirebaseService
                 'password' => $fields['password']['stringValue'] ?? null,
             ];
         } catch (\Exception $e) {
-            return null;
-        }
+    \Log::error('FirebaseService getUser error: ' . $e->getMessage());
+    return null;
+}
     }
 
     public function updateLastLogin($email)
     {
-        $docId = str_replace(['.', '@'], '_', $email);
+        $docId = strtolower(str_replace(['.', '@'], '_', $email));
 
         $this->client->patch(
             "{$this->firestoreUrl}/allowed_users/{$docId}?updateMask.fieldPaths=last_login",

@@ -83,14 +83,6 @@
         <!-- CARD -->
         <div class="cards">
             <div class="card">
-                <img src="{{ asset('img/temperature.png') }}">
-                <div class="card-text">
-                    <p class="title">Temperature</p>
-                    <h3 id="val-temperature">{{ $sensorData['temperature'] ?? '28.0' }}</h3>
-                </div>
-            </div>
-
-            <div class="card">
                 <img src="{{ asset('img/water.png') }}">
                 <div class="card-text">
                     <p class="title">Water pH</p>
@@ -109,7 +101,7 @@
             <div class="card">
                 <img src="{{ asset('img/pompa.png') }}">
                 <div class="card-text">
-                    <p class="title">Nutrition Pump</p>
+                    <p class="title">Nutrition Pump A</p>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <h3 id="val-pump" style="margin:0;">{{ $sensorData['pump'] ?? 'ON' }}</h3>
                         <label class="s-toggle" style="width:36px; height:20px; transform:scale(0.8); margin-left:40px; ">
@@ -123,7 +115,7 @@
             <div class="card">
                 <img src="{{ asset('img/pompa.png') }}">
                 <div class="card-text">
-                    <p class="title">Water Pump</p>
+                    <p class="title">Nutrition Pump B</p>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <h3 id="val-nutrition" style="margin:0;">ON</h3>
                         <label class="s-toggle" style="width:36px; height:20px; transform:scale(0.8); margin-left:40px;">
@@ -144,10 +136,6 @@
         </div>
 
         <div class="chart-tabs">
-            <div class="tab active">
-                <img src="{{ asset('img/temperature.png') }}">
-                <span>Temperature</span>
-            </div>
             <div class="tab">
                 <img src="{{ asset('img/water.png') }}">
                 <span>Water pH</span>
@@ -169,13 +157,6 @@
             <div class="graph">
                 <div class="graph-header">
                     <h3>Temperature Chart (°C)</h3>
-                    <div class="time-filter">
-                        <button class="active">1 jam</button>
-                        <button>6 jam</button>
-                        <button>12 jam</button>
-                        <button>1 hari</button>
-                        <button>7 hari</button>
-                    </div>
                 </div>
                 <canvas id="myChart"></canvas>
                 <div class="stats">
@@ -199,21 +180,13 @@
                 <div class="status-box">
                     <h3>System Status</h3>
                     <p>Sensor <span id="sensor-status">Normal</span></p>
-                    <p>Nutrition Pump <span id="pump-status">Running</span></p>        
-                    <p>Water Pump <span id="nutrition-status">Running</span></p>
+                    <p>Nutrition Pump A<span id="pump-status">Running</span></p>        
+                    <p>Nutrition Pump B<span id="nutrition-status">Running</span></p>
                     <p>Internet Connection <span id="internet-status">Online</span></p>
                 </div>
 
                 <div class="history">
                     <h3>Latest Data</h3>
-                    <div class="history-item">
-                        <img src="{{ asset('img/temperature.png') }}">
-                        <p>Temperature</p>
-                        <div class="history-text">
-                            <p id="history-temperature">{{ $sensorData['temperature'] ?? '28.0' }} °C</p>
-                            <span class="update" id="history-time">-</span>
-                        </div>
-                    </div>
                     <div class="history-item">
                         <img src="{{ asset('img/water.png') }}">
                         <p>Water pH</p>
@@ -247,7 +220,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const FIREBASE_URL = '{{ env('FIREBASE_DATABASE_URL') }}/sensors.json';
+// ===================== HISTORY DATA =====================
+const MAX_POINTS = 20;
+const history = {
+    ph:  { data: [], labels: [] },
+    tds: { data: [], labels: [] },
+    uv:  { data: [], labels: [] },
+};
+
+let activeTab = 'ph';
+
+// ===================== FIREBASE FETCH =====================
+const FIREBASE_URL = '{{ env("FIREBASE_DATABASE_URL") }}/sensors.json';
 
 function fetchSensorData() {
     const controller = new AbortController();
@@ -262,18 +246,32 @@ function fetchSensorData() {
             updateSystemStatus(true);
             if (!data) return;
 
-            if (data.temperature !== undefined) {
-                document.getElementById('val-temperature').textContent = data.temperature;
-                document.getElementById('history-temperature').textContent = data.temperature + ' °C';
-            }
+            const timeLabel = new Date().toLocaleTimeString('id-ID', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+
+            // Update card & history pH
             if (data.ph !== undefined) {
                 document.getElementById('val-ph').textContent = data.ph;
                 document.getElementById('history-ph').textContent = data.ph;
+                pushHistory('ph', data.ph, timeLabel);
             }
+
+            // Update card & history TDS
             if (data.tds !== undefined) {
                 document.getElementById('val-tds').textContent = data.tds + ' ppm';
                 document.getElementById('history-tds').textContent = data.tds + ' ppm';
+                pushHistory('tds', data.tds, timeLabel);
             }
+
+            // Update card & history UV
+            if (data.uv !== undefined) {
+                document.getElementById('val-uv').textContent = data.uv;
+                document.getElementById('history-uv').textContent = data.uv;
+                pushHistory('uv', data.uv, timeLabel);
+            }
+
+            // Update Pump 1 (pompa_air)
             if (data.pump !== undefined) {
                 document.getElementById('val-pump').textContent = data.pump;
                 const pumpToggle = document.getElementById('pump-toggle');
@@ -287,21 +285,30 @@ function fetchSensorData() {
                     pumpStatus.style.color = '#DC2626';
                 }
             }
-            if (data.uv !== undefined) {
-                document.getElementById('val-uv').textContent = data.uv;
-                document.getElementById('history-uv').textContent = data.uv;
+
+            // Update Pump 2 (pompa_nutrisi)
+            if (data.nutrition !== undefined) {
+                document.getElementById('val-nutrition').textContent = data.nutrition;
+                const nutritionToggle = document.getElementById('nutrition-toggle');
+                nutritionToggle.checked = data.nutrition === 'ON';
+                const nutritionStatus = document.getElementById('nutrition-status');
+                if (data.nutrition === 'ON') {
+                    nutritionStatus.textContent = 'Running';
+                    nutritionStatus.style.color = '#16A34A';
+                } else {
+                    nutritionStatus.textContent = 'Stopped';
+                    nutritionStatus.style.color = '#DC2626';
+                }
             }
 
-            // Sensor status
-            const temp = data.temperature ?? 28;
-            const ph = data.ph ?? 6.5;
-            const tds = data.tds ?? 700;
-            const uv = data.uv ?? 3.2;
+            // Sensor status warning check
+            const ph  = parseFloat(data.ph  ?? 6.5);
+            const tds = parseFloat(data.tds ?? 700);
+            const uv  = parseFloat(data.uv  ?? 3.2);
             const sensorStatus = document.getElementById('sensor-status');
-            const isNormal = temp >= 20 && temp <= 35 &&
-                             ph >= 5.5 && ph <= 7.5 &&
-                             tds >= 500 && tds <= 1000 &&
-                             uv >= 2.5 && uv <= 5.0;
+            const isNormal = ph  >= 5.5 && ph  <= 8.5 &&
+                             tds >= 0 && tds <= 1500 &&
+                             uv  >= 1.0 && uv  <= 6.0;
             if (isNormal) {
                 sensorStatus.textContent = 'Normal';
                 sensorStatus.style.color = '#16A34A';
@@ -310,11 +317,13 @@ function fetchSensorData() {
                 sensorStatus.style.color = '#F59E0B';
             }
 
-            // Update waktu history
-            const now = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            // Update timestamp di Latest Data
+            const now  = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
             const time = new Date().toLocaleTimeString('id-ID');
-            const datetime = now + ' ' + time;
-            document.querySelectorAll('.update').forEach(el => el.textContent = datetime);
+            document.querySelectorAll('.update').forEach(el => el.textContent = now + ' ' + time);
+
+            // Refresh chart sesuai tab aktif
+            refreshChart();
         })
         .catch(err => {
             clearTimeout(timeout);
@@ -323,67 +332,72 @@ function fetchSensorData() {
         });
 }
 
+// ===================== PUSH HISTORY =====================
+function pushHistory(key, value, label) {
+    history[key].data.push(parseFloat(value));
+    history[key].labels.push(label);
+    if (history[key].data.length > MAX_POINTS) {
+        history[key].data.shift();
+        history[key].labels.shift();
+    }
+}
+
+// ===================== SYSTEM STATUS =====================
 function updateSystemStatus(isOnline) {
-    const statusSystem = document.getElementById('status-system');
-    const statusText = document.getElementById('status-text');
-    const statusDesc = document.getElementById('status-desc');
-    const wifiIcon = document.getElementById('wifi-icon');
-    const onlineBadge = document.getElementById('online-badge');
+    const statusSystem   = document.getElementById('status-system');
+    const statusText     = document.getElementById('status-text');
+    const statusDesc     = document.getElementById('status-desc');
+    const wifiIcon       = document.getElementById('wifi-icon');
+    const onlineBadge    = document.getElementById('online-badge');
     const internetStatus = document.getElementById('internet-status');
 
     if (isOnline) {
         statusText.textContent = 'Online';
         statusDesc.textContent = 'The system runs normally';
         statusSystem.style.background = '#16A34A';
-        wifiIcon.style.filter = 'brightness(0) invert(1)';
+        wifiIcon.style.filter  = 'brightness(0) invert(1)';
         wifiIcon.style.opacity = '1';
         wifiIcon.src = "{{ asset('img/wifi.png') }}";
-        document.getElementById('badge-dot').style.color = '#16A34A';
-        document.getElementById('badge-text').textContent = 'Online System';
-        onlineBadge.style.color = '#16A34A';
+        document.getElementById('badge-dot').style.color   = '#16A34A';
+        document.getElementById('badge-text').textContent  = 'Online System';
+        onlineBadge.style.color      = '#16A34A';
         onlineBadge.style.background = '#f0fdf4';
-        onlineBadge.style.border = '1.5px solid #16A34A';
-        internetStatus.textContent = 'Online';
-        internetStatus.style.color = '#16A34A';
+        onlineBadge.style.border     = '1.5px solid #16A34A';
+        internetStatus.textContent   = 'Online';
+        internetStatus.style.color   = '#16A34A';
     } else {
         statusText.textContent = 'Offline';
         statusDesc.textContent = 'No Internet Connection';
         statusSystem.style.background = '#DC2626';
-        wifiIcon.style.filter = 'brightness(0) invert(1)';
+        wifiIcon.style.filter  = 'brightness(0) invert(1)';
         wifiIcon.style.opacity = '1';
         wifiIcon.src = "{{ asset('img/wifi-off.svg') }}";
-        document.getElementById('badge-dot').style.color = '#DC2626';
-        document.getElementById('badge-text').textContent = 'Offline System';
-        onlineBadge.style.color = '#DC2626';
+        document.getElementById('badge-dot').style.color   = '#DC2626';
+        document.getElementById('badge-text').textContent  = 'Offline System';
+        onlineBadge.style.color      = '#DC2626';
         onlineBadge.style.background = '#fef2f2';
-        onlineBadge.style.border = '1.5px solid #DC2626';
-        internetStatus.textContent = 'Disconnected';
-        internetStatus.style.color = '#DC2626';
+        onlineBadge.style.border     = '1.5px solid #DC2626';
+        internetStatus.textContent   = 'Disconnected';
+        internetStatus.style.color   = '#DC2626';
     }
 }
 
+// ===================== PUMP TOGGLE =====================
 function togglePump(checkbox) {
-    const status = checkbox.checked ? 'ON' : 'OFF';
+    const status     = checkbox.checked ? 'ON' : 'OFF';
     const statusBool = checkbox.checked;
 
     document.getElementById('val-pump').textContent = status;
-
-    // Update status di system status
     const pumpStatus = document.getElementById('pump-status');
-    if (checkbox.checked) {
-        pumpStatus.textContent = 'Running';
-        pumpStatus.style.color = '#16A34A';
-    } else {
-        pumpStatus.textContent = 'Stopped';
-        pumpStatus.style.color = '#DC2626';
-    }
+    pumpStatus.textContent = checkbox.checked ? 'Running' : 'Stopped';
+    pumpStatus.style.color = checkbox.checked ? '#16A34A' : '#DC2626';
 
-    fetch('{{ env("FIREBASE_DATABASE_URL") }}/sensors/pump.json', {
+    fetch('{{ env("FIREBASE_DATABASE_URL") }}/sensors/nutritionA.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(status)
     });
-    fetch('{{ env("FIREBASE_DATABASE_URL") }}/relay/pompa_air.json', {
+    fetch('{{ env("FIREBASE_DATABASE_URL") }}/relay/pompa_nutritionA.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(statusBool)
@@ -391,123 +405,146 @@ function togglePump(checkbox) {
 }
 
 function toggleNutrition(checkbox) {
-    const status = checkbox.checked ? 'ON' : 'OFF';
+    const status     = checkbox.checked ? 'ON' : 'OFF';
     const statusBool = checkbox.checked;
 
     document.getElementById('val-nutrition').textContent = status;
-
-    // Update status di system status
     const nutritionStatus = document.getElementById('nutrition-status');
-    if (checkbox.checked) {
-        nutritionStatus.textContent = 'Running';
-        nutritionStatus.style.color = '#16A34A';
-    } else {
-        nutritionStatus.textContent = 'Stopped';
-        nutritionStatus.style.color = '#DC2626';
-    }
+    nutritionStatus.textContent = checkbox.checked ? 'Running' : 'Stopped';
+    nutritionStatus.style.color = checkbox.checked ? '#16A34A' : '#DC2626';
 
-    fetch('{{ env("FIREBASE_DATABASE_URL") }}/sensors/nutrition.json', {
+    fetch('{{ env("FIREBASE_DATABASE_URL") }}/sensors/nutritionB.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(status)
     });
-    fetch('{{ env("FIREBASE_DATABASE_URL") }}/relay/pompa_nutrisi.json', {
+    fetch('{{ env("FIREBASE_DATABASE_URL") }}/relay/pompa_nutritionB.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(statusBool)
     });
 }
 
+function fetchRelayStatus() {
+    fetch('{{ env("FIREBASE_DATABASE_URL") }}/relay.json')
+        .then(res => res.json())
+        .then(data => {
+            if (!data) return;
 
-fetchSensorData();
-setInterval(fetchSensorData, 5000);
+            // Pompa A
+            const pompaA = data.pompa_nutritionA || false;
+            document.getElementById('val-pump').textContent = pompaA ? 'ON' : 'OFF';
+            document.getElementById('pump-toggle').checked = pompaA;
+            const pumpStatus = document.getElementById('pump-status');
+            pumpStatus.textContent = pompaA ? 'Running' : 'Stopped';
+            pumpStatus.style.color = pompaA ? '#16A34A' : '#DC2626';
 
-const chartData = {
-    temperature: {
-        title: 'Temperature Chart (°C)',
-        data: [28.0, 27.5, 28.5, 29.0, 28.2, 27.8, 28.8, 29.2, 28.5, 28.0],
-        min: '25.0 °C', avg: '28.2 °C', max: '31.0 °C', color: '#16A34A'
-    },
-    ph: {
-        title: 'Water pH Chart',
-        data: [6.5, 6.8, 7.0, 6.9, 6.4, 6.6, 7.1, 6.7, 6.5, 6.8],
-        min: '6.4', avg: '6.7', max: '7.1', color: '#3B82F6'
-    },
-    tds: {
-        title: 'Water TDS Chart (ppm)',
-        data: [700, 720, 680, 750, 710, 690, 730, 700, 715, 695],
-        min: '660 ppm', avg: '700 ppm', max: '750 ppm', color: '#8B5CF6'
-    },
-    uv: {
-        title: 'UV Light Chart',
-        data: [3.2, 3.5, 3.8, 3.1, 2.9, 3.4, 3.7, 3.3, 3.0, 3.6],
-        min: '2.7', avg: '3.3', max: '3.8', color: '#F59E0B'
-    }
+            // Pompa B
+            const pompaB = data.pompa_nutritionB || false;
+            document.getElementById('val-nutrition').textContent = pompaB ? 'ON' : 'OFF';
+            document.getElementById('nutrition-toggle').checked = pompaB;
+            const nutritionStatus = document.getElementById('nutrition-status');
+            nutritionStatus.textContent = pompaB ? 'Running' : 'Stopped';
+            nutritionStatus.style.color = pompaB ? '#16A34A' : '#DC2626';
+        });
+}
+
+// Panggil di bagian START POLLING
+fetchRelayStatus();
+setInterval(fetchRelayStatus, 3000);
+
+// ===================== CHART SETUP =====================
+const chartMeta = {
+    ph:  { title: 'Water pH Chart',        color: '#3B82F6', unit: ''     },
+    tds: { title: 'Water TDS Chart (ppm)', color: '#8B5CF6', unit: ' ppm' },
+    uv:  { title: 'UV Light Chart',        color: '#F59E0B', unit: ''     },
 };
-
-const labels = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
 
 const ctx = document.getElementById('myChart');
 const myChart = new Chart(ctx, {
     type: 'line',
     data: {
-        labels: labels,
+        labels: [],
         datasets: [{
-            label: 'Temperature',
-            data: chartData.temperature.data,
-            borderColor: chartData.temperature.color,
-            backgroundColor: 'rgba(22,163,74,0.1)',
+            label: 'Water pH',
+            data: [],
+            borderColor: chartMeta.ph.color,
+            backgroundColor: chartMeta.ph.color + '22',
             borderWidth: 2,
             tension: 0.4,
-            fill: true
+            fill: true,
+            pointRadius: 3,
         }]
     },
     options: {
         responsive: true,
+        animation: { duration: 300 },
         plugins: { legend: { display: false } },
         scales: { y: { beginAtZero: false } }
     }
 });
 
-function updateChart(type) {
-    const d = chartData[type];
-    myChart.data.datasets[0].data = d.data;
-    myChart.data.datasets[0].borderColor = d.color;
-    myChart.data.datasets[0].backgroundColor = d.color + '1A';
-    myChart.update();
-    document.querySelector('.graph-header h3').textContent = d.title;
+// ===================== REFRESH CHART =====================
+function refreshChart() {
+    const h    = history[activeTab];
+    const meta = chartMeta[activeTab];
+    if (h.data.length === 0) return;
+
+    myChart.data.labels                          = [...h.labels];
+    myChart.data.datasets[0].data               = [...h.data];
+    myChart.data.datasets[0].borderColor        = meta.color;
+    myChart.data.datasets[0].backgroundColor    = meta.color + '22';
+    myChart.update('none');
+
+    document.querySelector('.graph-header h3').textContent = meta.title;
+
+    const vals = h.data;
+    const min  = Math.min(...vals).toFixed(1) + meta.unit;
+    const avg  = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) + meta.unit;
+    const max  = Math.max(...vals).toFixed(1) + meta.unit;
+
     const stats = document.querySelectorAll('.stats div h4');
-    stats[0].textContent = d.min;
-    stats[1].textContent = d.avg;
-    stats[2].textContent = d.max;
+    stats[0].textContent = min;
+    stats[1].textContent = avg;
+    stats[2].textContent = max;
 }
 
-const tabs = document.querySelectorAll('.chart-tabs .tab');
-const tabKeys = ['temperature', 'ph', 'tds', 'uv'];
+// ===================== TABS =====================
+const tabs    = document.querySelectorAll('.chart-tabs .tab');
+const tabKeys = ['ph', 'tds', 'uv']; // temperature dihapus
+
 tabs.forEach(function(tab, index) {
     tab.addEventListener('click', function() {
-        tabs.forEach(function(t) { t.classList.remove('active'); });
+        tabs.forEach(t => t.classList.remove('active'));
         this.classList.add('active');
-        updateChart(tabKeys[index]);
+        activeTab = tabKeys[index];
+        refreshChart();
     });
 });
 
+// ===================== TIME FILTER BUTTONS =====================
 const timeButtons = document.querySelectorAll('.time-filter button');
 timeButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
-        timeButtons.forEach(function(b) { b.classList.remove('active'); });
+        timeButtons.forEach(b => b.classList.remove('active'));
         this.classList.add('active');
     });
 });
 
+// ===================== DATE TIME =====================
 function updateDateTime() {
     const now = new Date();
-    const dateOptions = { day: 'numeric', month: 'long', year: 'numeric' };
-    document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', dateOptions);
+    document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
     document.getElementById('current-time').textContent = now.toLocaleTimeString('id-ID');
 }
 updateDateTime();
 setInterval(updateDateTime, 1000);
+
+// ===================== START POLLING =====================
+fetchSensorData();
+setInterval(fetchSensorData, 5000);
 </script>
 
 @endsection

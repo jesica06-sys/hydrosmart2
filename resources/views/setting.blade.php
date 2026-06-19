@@ -108,37 +108,25 @@
         <!-- ROW 1 -->
         <div class="s-row">
             <div class="s-card">
-                <h3>Pump Control</h3>
-                <div class="s-radio-group">
-                    <label class="s-radio-label">
-                        <input type="radio" name="pump-mode" value="automatic" checked> Automatic
-                    </label>
-                    <label class="s-radio-label">
-                        <input type="radio" name="pump-mode" value="manual"> Manual
-                    </label>
-                </div>
-                <p class="s-speed-label">Pump Speed</p>
-                <div class="s-slider-group">
-                    <input type="range" min="0" max="100" value="80" id="pump-speed"
-                        oninput="document.getElementById('pump-speed-val').textContent = this.value + '%'">
-                    <span id="pump-speed-val">80%</span>
-                </div>
-            </div>
-
-            <div class="s-card">
                 <h3>Pump Schedule</h3>
                 <div class="s-schedule-row">
                     <div class="s-schedule-item">
-                        <label class="s-toggle"><input type="checkbox" checked><span class="s-toggle-bar"></span></label>
+                        <label class="s-toggle">
+                            <input type="checkbox" id="toggle-pump-a" checked onchange="toggleScheduleActive('Nutrition Pump A', this.checked)">
+                            <span class="s-toggle-bar"></span>
+                        </label>
                         <div>
-                            <p class="s-schedule-name">Water Pump</p>
+                            <p class="s-schedule-name">Nutrition Pump A</p>
                             <p class="s-schedule-time" id="water-pump-time">06.00 - 08.00</p>
                         </div>
                     </div>
                     <div class="s-schedule-item">
-                        <label class="s-toggle"><input type="checkbox" checked><span class="s-toggle-bar"></span></label>
+                        <label class="s-toggle">
+                            <input type="checkbox" id="toggle-pump-b" checked onchange="toggleScheduleActive('Nutrition Pump B', this.checked)">
+                            <span class="s-toggle-bar"></span>
+                        </label>
                         <div>
-                            <p class="s-schedule-name">Nutrition Pump</p>
+                            <p class="s-schedule-name">Nutrition Pump B</p>
                             <p class="s-schedule-time" id="nutrition-pump-time">17.00 - 19.00</p>
                         </div>
                     </div>
@@ -152,10 +140,6 @@
             <div class="s-card">
                 <h3>Notification</h3>
                 <div class="s-notif-item">
-                    <div><p class="s-notif-title">Temperature Warning</p><p class="s-notif-desc">Active if the temperature is abnormal</p></div>
-                    <label class="s-toggle"><input type="checkbox" checked><span class="s-toggle-bar"></span></label>
-                </div>
-                <div class="s-notif-item">
                     <div><p class="s-notif-title">pH Warning</p><p class="s-notif-desc">Active if the pH is not normal</p></div>
                     <label class="s-toggle"><input type="checkbox" checked><span class="s-toggle-bar"></span></label>
                 </div>
@@ -165,10 +149,6 @@
                 </div>
                 <div class="s-notif-item">
                     <div><p class="s-notif-title">UV Warning</p><p class="s-notif-desc">Active if the UV is not normal</p></div>
-                    <label class="s-toggle"><input type="checkbox" checked><span class="s-toggle-bar"></span></label>
-                </div>
-                <div class="s-notif-item">
-                    <div><p class="s-notif-title">Internet Connection</p><p class="s-notif-desc">Notification if the connection is lost</p></div>
                     <label class="s-toggle"><input type="checkbox" checked><span class="s-toggle-bar"></span></label>
                 </div>
             </div>
@@ -186,8 +166,8 @@
         <div style="margin-bottom:15px;">
             <label style="font-size:12px; font-weight:600; font-family:'Poppins',sans-serif;">Schedule Name</label>
             <select id="schedule-name" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px;">
-                <option>Water Pump</option>
-                <option>Nutrition Pump</option>
+                <option>Nutrition Pump A</option>
+                <option>Nutrition Pump B</option>
                 <option>Custom</option>
             </select>
         </div>
@@ -195,11 +175,11 @@
         <div style="display:flex; gap:15px; margin-bottom:15px;">
             <div style="flex:1;">
                 <label style="font-size:12px; font-weight:600; font-family:'Poppins',sans-serif;">Start Time</label>
-                <input type="time" id="schedule-start" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px; box-sizing:border-box;">
+                <input type="time" id="schedule-start" step="1" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px; box-sizing:border-box;">
             </div>
             <div style="flex:1;">
                 <label style="font-size:12px; font-weight:600; font-family:'Poppins',sans-serif;">End Time</label>
-                <input type="time" id="schedule-end" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px; box-sizing:border-box;">
+                <input type="time" id="schedule-end" step="1" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:10px; margin-top:5px; font-family:'Poppins',sans-serif; font-size:13px; box-sizing:border-box;">
             </div>
         </div>
 
@@ -223,22 +203,125 @@
 </div>
 
 <script>
+// ===================== DATE TIME =====================
 function updateDateTime() {
     const now = new Date();
-    const dateOptions = { day: 'numeric', month: 'long', year: 'numeric' };
-    document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', dateOptions);
+    document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     document.getElementById('current-time').textContent = now.toLocaleTimeString('id-ID');
 }
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
-const FIREBASE_URL = '{{ env('FIREBASE_DATABASE_URL') }}/sensors.json';
-const FIREBASE_SCHEDULE_URL = '{{ env('FIREBASE_DATABASE_URL') }}/schedules';
+// ===================== FIREBASE =====================
+const FIREBASE_URL          = '{{ env("FIREBASE_DATABASE_URL") }}/sensors.json';
+const FIREBASE_SCHEDULE_URL = '{{ env("FIREBASE_DATABASE_URL") }}/schedule';
+
+// ===================== NOTIFICATION PERMISSION =====================
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+
+// Simpan state toggle notifikasi
+const notifState = {
+    ph:         true,
+    tds:        true,
+    uv:         true,
+    connection: true,
+};
+
+// Ambil semua toggle notifikasi
+const notifToggles = document.querySelectorAll('.s-notif-item .s-toggle input');
+const notifKeys    = ['ph', 'tds', 'uv', 'connection'];
+
+notifToggles.forEach(function(toggle, index) {
+    toggle.checked = notifState[notifKeys[index]];
+    toggle.addEventListener('change', function() {
+        notifState[notifKeys[index]] = this.checked;
+    });
+});
+
+// Tracking notifikasi agar tidak spam
+const lastNotified  = { ph: 0, tds: 0, uv: 0, connection: 0 };
+const NOTIF_COOLDOWN = 60000;
+
+function sendNotif(key, title, body) {
+    if (!notifState[key]) return;
+    const now = Date.now();
+    if (now - lastNotified[key] < NOTIF_COOLDOWN) return;
+    lastNotified[key] = now;
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body: body, icon: '/img/daun.png' });
+    }
+}
+
+// ===================== SYSTEM STATUS =====================
+function updateSystemStatus(isOnline) {
+    const statusSystem = document.getElementById('status-system');
+    const statusText   = document.getElementById('status-text');
+    const statusDesc   = document.getElementById('status-desc');
+    const wifiIcon     = document.getElementById('wifi-icon');
+
+    if (isOnline) {
+        statusText.textContent        = 'Online';
+        statusDesc.textContent        = 'The system runs normally';
+        statusSystem.style.background = '#16A34A';
+        wifiIcon.style.filter         = 'brightness(0) invert(1)';
+        wifiIcon.src                  = "{{ asset('img/wifi.png') }}";
+    } else {
+        statusText.textContent        = 'Offline';
+        statusDesc.textContent        = 'No Internet Connection';
+        statusSystem.style.background = '#DC2626';
+        wifiIcon.style.filter         = 'brightness(0) invert(1)';
+        wifiIcon.src                  = "{{ asset('img/wifi-off.svg') }}";
+
+        sendNotif('connection', '⚠️ Smart Hydroponic', 'Internet connection lost! System is offline.');
+    }
+}
+
+// ===================== CHECK SENSOR & NOTIF =====================
+function checkSensorAndNotify(data) {
+    if (!data) return;
+
+    const ph  = parseFloat(data.ph  ?? 6.5);
+    const tds = parseFloat(data.tds ?? 700);
+    const uv  = parseFloat(data.uv  ?? 3.2);
+
+    if (ph < 5.5 || ph > 7.5) {
+        sendNotif('ph', '⚠️ pH Warning', `Water pH is ${ph} — outside normal range (5.5 - 7.5)`);
+    }
+    if (tds < 500 || tds > 1000) {
+        sendNotif('tds', '⚠️ TDS Warning', `Water TDS is ${tds} ppm — outside normal range (500 - 1000 ppm)`);
+    }
+    if (uv < 2.5 || uv > 5.0) {
+        sendNotif('uv', '⚠️ UV Warning', `UV Light is ${uv} — outside normal range (2.5 - 5.0)`);
+    }
+}
+
+// ===================== FETCH SENSOR =====================
+function checkConnection() {
+    const controller = new AbortController();
+    const timeout    = setTimeout(() => controller.abort(), 3000);
+
+    fetch(FIREBASE_URL, { signal: controller.signal })
+        .then(res => { clearTimeout(timeout); return res.json(); })
+        .then(data => {
+            updateSystemStatus(true);
+            checkSensorAndNotify(data);
+        })
+        .catch(err => {
+            clearTimeout(timeout);
+            updateSystemStatus(false);
+        });
+}
+
+// ===================== SCHEDULE =====================
+let scheduleKeys = {}; // simpan key Firebase per nama schedule, agar bisa di-update / di-toggle
 
 function saveSchedule() {
-    const name = document.getElementById('schedule-name').value;
-    const start = document.getElementById('schedule-start').value;
-    const end = document.getElementById('schedule-end').value;
+    const name   = document.getElementById('schedule-name').value;
+    const start  = document.getElementById('schedule-start').value;
+    const end    = document.getElementById('schedule-end').value;
     const active = document.getElementById('schedule-active').checked;
 
     if (!start || !end) {
@@ -247,11 +330,8 @@ function saveSchedule() {
     }
 
     const data = {
-        name: name,
-        start_time: start,
-        end_time: end,
-        is_active: active,
-        created_at: new Date().toISOString()
+        name: name, start_time: start, end_time: end,
+        is_active: active, created_at: new Date().toISOString()
     };
 
     fetch(FIREBASE_SCHEDULE_URL + '.json', {
@@ -259,100 +339,80 @@ function saveSchedule() {
         body: JSON.stringify(data)
     })
     .then(res => res.json())
-    .then(result => {
+    .then(() => {
         alert('Schedule berhasil disimpan!');
         document.getElementById('scheduleModal').style.display = 'none';
         loadSchedules();
     })
-    .catch(err => {
-        alert('Gagal menyimpan schedule!');
-    });
+    .catch(() => alert('Gagal menyimpan schedule!'));
 }
 
 function loadSchedules() {
     fetch(FIREBASE_SCHEDULE_URL + '.json')
         .then(res => res.json())
         .then(data => {
-            if (!data) return;
+            // Reset dulu ke default sebelum dicek ulang
+            let foundA = false;
+            let foundB = false;
 
-            let waterPump = null;
-            let nutritionPump = null;
-
-            Object.values(data).forEach(schedule => {
-                if (schedule.name === 'Water Pump') waterPump = schedule;
-                if (schedule.name === 'Nutrition Pump') nutritionPump = schedule;
-            });
-
-            if (waterPump) {
-                document.getElementById('water-pump-time').textContent =
-                    waterPump.start_time + ' - ' + waterPump.end_time;
+            if (data) {
+                Object.entries(data).forEach(([key, schedule]) => {
+                    if (schedule.name === 'Nutrition Pump A') {
+                        foundA = true;
+                        scheduleKeys['Nutrition Pump A'] = key;
+                        document.getElementById('water-pump-time').textContent =
+                            schedule.start_time + ' - ' + schedule.end_time;
+                        document.getElementById('toggle-pump-a').checked = schedule.is_active;
+                    }
+                    if (schedule.name === 'Nutrition Pump B') {
+                        foundB = true;
+                        scheduleKeys['Nutrition Pump B'] = key;
+                        document.getElementById('nutrition-pump-time').textContent =
+                            schedule.start_time + ' - ' + schedule.end_time;
+                        document.getElementById('toggle-pump-b').checked = schedule.is_active;
+                    }
+                });
             }
-            if (nutritionPump) {
-                document.getElementById('nutrition-pump-time').textContent =
-                    nutritionPump.start_time + ' - ' + nutritionPump.end_time;
+
+            // Kalau tidak ditemukan di Firebase, berarti sudah dihapus -> reset ke 00.00.00
+            if (!foundA) {
+                document.getElementById('water-pump-time').textContent = '00.00.00 - 00.00.00';
+                document.getElementById('toggle-pump-a').checked = false;
+                delete scheduleKeys['Nutrition Pump A'];
+            }
+            if (!foundB) {
+                document.getElementById('nutrition-pump-time').textContent = '00.00.00 - 00.00.00';
+                document.getElementById('toggle-pump-b').checked = false;
+                delete scheduleKeys['Nutrition Pump B'];
             }
         });
 }
 
-function updateSystemStatus(isOnline) {
-    const statusSystem = document.getElementById('status-system');
-    const statusText = document.getElementById('status-text');
-    const statusDesc = document.getElementById('status-desc');
-    const wifiIcon = document.getElementById('wifi-icon');
+// Toggle aktif/non-aktif schedule langsung dari card (tanpa modal)
+function toggleScheduleActive(name, isActive) {
+    const key = scheduleKeys[name];
 
-    if (isOnline) {
-        statusText.textContent = 'Online';
-        statusDesc.textContent = 'The system runs normally';
-        statusSystem.style.background = '#16A34A';
-        wifiIcon.style.filter = 'brightness(0) invert(1)';
-        wifiIcon.style.opacity = '1';
-        wifiIcon.src = '/img/wifi.png';
-    } else {
-        statusText.textContent = 'Offline';
-        statusDesc.textContent = 'System disconnected!';
-        statusSystem.style.background = '#DC2626';
-        wifiIcon.style.filter = 'brightness(0) invert(1)';
-        wifiIcon.style.opacity = '1';
-        wifiIcon.src = '/img/wifi-off.svg';
+    if (!key) {
+        // Belum ada schedule tersimpan untuk pump ini di Firebase
+        alert('Belum ada schedule tersimpan untuk ' + name + '. Tambahkan schedule terlebih dahulu lewat "+ Add Schedule".');
+        // kembalikan toggle ke posisi semula
+        if (name === 'Nutrition Pump A') document.getElementById('toggle-pump-a').checked = !isActive;
+        if (name === 'Nutrition Pump B') document.getElementById('toggle-pump-b').checked = !isActive;
+        return;
     }
+
+    fetch(FIREBASE_SCHEDULE_URL + '/' + key + '.json', {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: isActive })
+    })
+    .catch(() => alert('Gagal mengubah status schedule!'));
 }
 
-function checkConnection() {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
-
-    fetch(FIREBASE_URL, { signal: controller.signal })
-        .then(res => {
-            clearTimeout(timeout);
-            updateSystemStatus(true);
-        })
-        .catch(err => {
-            clearTimeout(timeout);
-            updateSystemStatus(false);
-        });
-}
-
+// ===================== START =====================
 loadSchedules();
 checkConnection();
 setInterval(checkConnection, 5000);
-
-// Pump Control - disable/enable slider
-const pumpRadios = document.querySelectorAll('input[name="pump-mode"]');
-const pumpSlider = document.getElementById('pump-speed');
-
-function updateSliderState() {
-    const isManual = document.querySelector('input[name="pump-mode"][value="manual"]').checked;
-    pumpSlider.disabled = !isManual;
-    pumpSlider.style.opacity = isManual ? '1' : '0.4';
-    pumpSlider.style.cursor = isManual ? 'pointer' : 'not-allowed';
-}
-
-pumpRadios.forEach(radio => {
-    radio.addEventListener('change', updateSliderState);
-});
-
-// Jalankan saat halaman load
-updateSliderState();
+setInterval(loadSchedules, 5000);
 </script>
 
 @endsection
