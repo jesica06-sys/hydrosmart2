@@ -1005,3 +1005,154 @@ body {
     display: block;
     color: #555;
 }
+
+/* ===================== RESPONSIVE ===================== */
+
+.hamburger-btn {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1000;
+    background: #16A34A;
+    color: #fff;
+    border: none;
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 998;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
+/* TABLET */
+@media (max-width: 1024px) {
+    .cards {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+    .content, .monitoring-content {
+        flex-direction: column;
+    }
+    .right-panel, #mon-panel {
+        width: 100%;
+    }
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+    body, html {
+        overflow-y: auto !important;
+    }
+
+    .container {
+        flex-direction: column;
+        padding: 10px;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+
+    .hamburger-btn {
+        display: block;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 260px;
+        height: 100vh;
+        z-index: 999;
+        transition: left 0.3s ease;
+        border-radius: 0;
+        overflow-y: auto;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    .main, .main.monitoring-main {
+        width: 100%;
+        margin-top: 55px;
+        align-self: stretch;
+        overflow-y: visible;
+        height: auto;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .top-info {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .cards {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px;
+    }
+
+    .card {
+        padding: 8px;
+    }
+
+    .card img {
+        width: 28px;
+    }
+
+    .card-text h3 {
+        font-size: 12px;
+    }
+
+    .chart-tabs {
+        flex-wrap: wrap;
+    }
+
+    .tab span {
+        font-size: 10px;
+    }
+
+    .content, .monitoring-content {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .graph, .right-panel, .monitoring-graph, #mon-panel {
+        width: 100%;
+    }
+
+    #myChart, #monitoringChart {
+        height: 200px !important;
+    }
+
+    .stats {
+        flex-wrap: wrap;
+    }
+}
+
+/* SMALL MOBILE */
+@media (max-width: 480px) {
+    .cards {
+        grid-template-columns: 1fr !important;
+    }
+    .history-item img {
+        width: 30px;
+    }
+}

@@ -1,6 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
+
+<button id="hamburger-btn" class="hamburger-btn">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
 <div class="container">
 
     <!-- SIDEBAR -->
@@ -157,6 +161,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// ===================== HAMBURGER MENU =====================
+document.getElementById('hamburger-btn').addEventListener('click', function() {
+    document.querySelector('.sidebar').classList.toggle('active');
+    document.getElementById('sidebar-overlay').classList.toggle('active');
+});
+
+document.getElementById('sidebar-overlay').addEventListener('click', function() {
+    document.querySelector('.sidebar').classList.remove('active');
+    this.classList.remove('active');
+});
+
 // ===================== HISTORY DATA =====================
 const MAX_POINTS = 20;
 const history = {

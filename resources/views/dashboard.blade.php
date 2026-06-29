@@ -1,6 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
+
+<button id="hamburger-btn" class="hamburger-btn">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
 <div class="container">
 
     <!-- SIDEBAR -->
@@ -74,7 +78,7 @@
                     <img src="{{ asset('img/notif.png') }}">
                 </div>
                 <span class="online" id="online-badge">
-                    <span id="badge-dot">●</span> 
+                    <span id="badge-dot">●</span>
                     <span id="badge-text">Online System</span>
                 </span>
             </div>
@@ -180,7 +184,7 @@
                 <div class="status-box">
                     <h3>System Status</h3>
                     <p>Sensor <span id="sensor-status">Normal</span></p>
-                    <p>Nutrition Pump A<span id="pump-status">Running</span></p>        
+                    <p>Nutrition Pump A<span id="pump-status">Running</span></p>
                     <p>Nutrition Pump B<span id="nutrition-status">Running</span></p>
                     <p>Internet Connection <span id="internet-status">Online</span></p>
                 </div>
@@ -218,8 +222,20 @@
     </div>
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// ===================== HAMBURGER MENU =====================
+document.getElementById('hamburger-btn').addEventListener('click', function() {
+    document.querySelector('.sidebar').classList.toggle('active');
+    document.getElementById('sidebar-overlay').classList.toggle('active');
+});
+
+document.getElementById('sidebar-overlay').addEventListener('click', function() {
+    document.querySelector('.sidebar').classList.remove('active');
+    this.classList.remove('active');
+});
+
 // ===================== HISTORY DATA =====================
 const MAX_POINTS = 20;
 const history = {
@@ -250,28 +266,24 @@ function fetchSensorData() {
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             });
 
-            // Update card & history pH
             if (data.ph !== undefined) {
                 document.getElementById('val-ph').textContent = data.ph;
                 document.getElementById('history-ph').textContent = data.ph;
                 pushHistory('ph', data.ph, timeLabel);
             }
 
-            // Update card & history TDS
             if (data.tds !== undefined) {
                 document.getElementById('val-tds').textContent = data.tds + ' ppm';
                 document.getElementById('history-tds').textContent = data.tds + ' ppm';
                 pushHistory('tds', data.tds, timeLabel);
             }
 
-            // Update card & history UV
             if (data.uv !== undefined) {
                 document.getElementById('val-uv').textContent = data.uv;
                 document.getElementById('history-uv').textContent = data.uv;
                 pushHistory('uv', data.uv, timeLabel);
             }
 
-            // Update Pump 1 (pompa_air)
             if (data.pump !== undefined) {
                 document.getElementById('val-pump').textContent = data.pump;
                 const pumpToggle = document.getElementById('pump-toggle');
@@ -286,7 +298,6 @@ function fetchSensorData() {
                 }
             }
 
-            // Update Pump 2 (pompa_nutrisi)
             if (data.nutrition !== undefined) {
                 document.getElementById('val-nutrition').textContent = data.nutrition;
                 const nutritionToggle = document.getElementById('nutrition-toggle');
@@ -301,7 +312,6 @@ function fetchSensorData() {
                 }
             }
 
-            // Sensor status warning check
             const ph  = parseFloat(data.ph  ?? 6.5);
             const tds = parseFloat(data.tds ?? 700);
             const uv  = parseFloat(data.uv  ?? 3.2);
@@ -317,12 +327,10 @@ function fetchSensorData() {
                 sensorStatus.style.color = '#F59E0B';
             }
 
-            // Update timestamp di Latest Data
             const now  = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
             const time = new Date().toLocaleTimeString('id-ID');
             document.querySelectorAll('.update').forEach(el => el.textContent = now + ' ' + time);
 
-            // Refresh chart sesuai tab aktif
             refreshChart();
         })
         .catch(err => {
@@ -332,7 +340,6 @@ function fetchSensorData() {
         });
 }
 
-// ===================== PUSH HISTORY =====================
 function pushHistory(key, value, label) {
     history[key].data.push(parseFloat(value));
     history[key].labels.push(label);
@@ -342,7 +349,6 @@ function pushHistory(key, value, label) {
     }
 }
 
-// ===================== SYSTEM STATUS =====================
 function updateSystemStatus(isOnline) {
     const statusSystem   = document.getElementById('status-system');
     const statusText     = document.getElementById('status-text');
@@ -382,7 +388,6 @@ function updateSystemStatus(isOnline) {
     }
 }
 
-// ===================== PUMP TOGGLE =====================
 function togglePump(checkbox) {
     const status     = checkbox.checked ? 'ON' : 'OFF';
     const statusBool = checkbox.checked;
@@ -431,7 +436,6 @@ function fetchRelayStatus() {
         .then(data => {
             if (!data) return;
 
-            // Pompa A
             const pompaA = data.pompa_nutritionA || false;
             document.getElementById('val-pump').textContent = pompaA ? 'ON' : 'OFF';
             document.getElementById('pump-toggle').checked = pompaA;
@@ -439,7 +443,6 @@ function fetchRelayStatus() {
             pumpStatus.textContent = pompaA ? 'Running' : 'Stopped';
             pumpStatus.style.color = pompaA ? '#16A34A' : '#DC2626';
 
-            // Pompa B
             const pompaB = data.pompa_nutritionB || false;
             document.getElementById('val-nutrition').textContent = pompaB ? 'ON' : 'OFF';
             document.getElementById('nutrition-toggle').checked = pompaB;
@@ -449,11 +452,9 @@ function fetchRelayStatus() {
         });
 }
 
-// Panggil di bagian START POLLING
 fetchRelayStatus();
 setInterval(fetchRelayStatus, 3000);
 
-// ===================== CHART SETUP =====================
 const chartMeta = {
     ph:  { title: 'Water pH Chart',        color: '#3B82F6', unit: ''     },
     tds: { title: 'Water TDS Chart (ppm)', color: '#8B5CF6', unit: ' ppm' },
@@ -484,7 +485,6 @@ const myChart = new Chart(ctx, {
     }
 });
 
-// ===================== REFRESH CHART =====================
 function refreshChart() {
     const h    = history[activeTab];
     const meta = chartMeta[activeTab];
@@ -509,9 +509,8 @@ function refreshChart() {
     stats[2].textContent = max;
 }
 
-// ===================== TABS =====================
 const tabs    = document.querySelectorAll('.chart-tabs .tab');
-const tabKeys = ['ph', 'tds', 'uv']; // temperature dihapus
+const tabKeys = ['ph', 'tds', 'uv'];
 
 tabs.forEach(function(tab, index) {
     tab.addEventListener('click', function() {
@@ -522,7 +521,6 @@ tabs.forEach(function(tab, index) {
     });
 });
 
-// ===================== TIME FILTER BUTTONS =====================
 const timeButtons = document.querySelectorAll('.time-filter button');
 timeButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -531,7 +529,6 @@ timeButtons.forEach(function(btn) {
     });
 });
 
-// ===================== DATE TIME =====================
 function updateDateTime() {
     const now = new Date();
     document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', {
@@ -542,7 +539,6 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
-// ===================== START POLLING =====================
 fetchSensorData();
 setInterval(fetchSensorData, 5000);
 </script>
